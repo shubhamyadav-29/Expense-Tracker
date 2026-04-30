@@ -4,13 +4,14 @@ const cors = require("cors");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
-const app = express();
+const app = express(); // ✅ MUST be here
 
 // Models
 const User = require("./models/User");
 const Post = require("./models/Post");
+const authMiddleware = require("./middleware/authMiddleware");
 
-// Secret key (later move to .env)
+// Secret key
 const SECRET = "mysecretkey";
 
 // Middleware
@@ -35,18 +36,15 @@ app.post("/api/register", async (req, res) => {
   try {
     const { name, email, password } = req.body;
 
-    // Validation
     if (!name || !email || !password) {
       return res.status(400).json({ message: "All fields required" });
     }
 
-    // Check existing user
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(400).json({ message: "User already exists" });
     }
 
-    // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const user = new User({
@@ -68,7 +66,6 @@ app.post("/api/login", async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // Validation
     if (!email || !password) {
       return res.status(400).json({ message: "All fields required" });
     }
@@ -85,12 +82,10 @@ app.post("/api/login", async (req, res) => {
       return res.status(400).json({ message: "Invalid password" });
     }
 
-    // Token with expiry
     const token = jwt.sign({ id: user._id }, SECRET, {
       expiresIn: "7d",
     });
 
-    // Remove password from response
     const { password: _, ...userData } = user._doc;
 
     res.json({ token, user: userData });
@@ -101,20 +96,13 @@ app.post("/api/login", async (req, res) => {
 
 /* ================== BLOG ROUTES ================== */
 
-// 🔥 GET ALL POSTS
+// 🔥 GET ALL POSTS (public)
 app.get("/api/posts", async (req, res) => {
   const posts = await Post.find();
   res.json(posts);
 });
 
-// 🔥 CREATE POST
-app.post("/api/posts", async (req, res) => {
-  const newPost = new Post(req.body);
-  await newPost.save();
-  res.json(newPost);
-});
-
-// 🔥 GET SINGLE POST
+// 🔥 GET SINGLE POST (public)
 app.get("/api/posts/:id", async (req, res) => {
   try {
     const post = await Post.findById(req.params.id);
@@ -129,18 +117,39 @@ app.get("/api/posts/:id", async (req, res) => {
   }
 });
 
-// 🔥 UPDATE POST
-app.put("/api/posts/:id", async (req, res) => {
+// 🔥 CREATE POST (protected)
+app.post("/api/posts", authMiddleware, async (req, res) => {
   try {
+    const newPost = new Post({
+      ...req.body,
+      author: req.user.id,
+    });
+
+    await newPost.save();
+    res.json(newPost);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// 🔥 UPDATE POST (protected + author check)
+app.put("/api/posts/:id", authMiddleware, async (req, res) => {
+  try {
+    const post = await Post.findById(req.params.id);
+
+    if (!post) {
+      return res.status(404).json({ message: "Post not found" });
+    }
+
+    if (post.author.toString() !== req.user.id) {
+      return res.status(403).json({ message: "Unauthorized" });
+    }
+
     const updatedPost = await Post.findByIdAndUpdate(
       req.params.id,
       req.body,
       { new: true }
     );
-
-    if (!updatedPost) {
-      return res.status(404).json({ message: "Post not found" });
-    }
 
     res.json(updatedPost);
   } catch (err) {
@@ -148,10 +157,21 @@ app.put("/api/posts/:id", async (req, res) => {
   }
 });
 
-// 🔥 DELETE POST
-app.delete("/api/posts/:id", async (req, res) => {
+// 🔥 DELETE POST (protected + author check)
+app.delete("/api/posts/:id", authMiddleware, async (req, res) => {
   try {
+    const post = await Post.findById(req.params.id);
+
+    if (!post) {
+      return res.status(404).json({ message: "Post not found" });
+    }
+
+    if (post.author.toString() !== req.user.id) {
+      return res.status(403).json({ message: "Unauthorized" });
+    }
+
     await Post.findByIdAndDelete(req.params.id);
+
     res.json({ message: "Post deleted successfully" });
   } catch (err) {
     res.status(500).json({ error: err.message });
