@@ -1,4 +1,5 @@
 import Expense from "../models/Expense.js";
+import mongoose from "mongoose";
 
 // Add Expense
 export const addExpense = async (req, res) => {
@@ -68,6 +69,61 @@ export const deleteExpense = async (req, res) => {
     await expense.deleteOne();
 
     res.json({ msg: "Expense deleted" });
+  } catch (error) {
+    res.status(500).json({ msg: error.message });
+  }
+};
+
+export const getTotalExpense = async (req, res) => {
+  try {
+    const expenses = await Expense.find({ user: req.user.id });
+
+    const total = expenses.reduce((sum, exp) => sum + exp.amount, 0);
+
+    res.json({ total });
+  } catch (error) {
+    res.status(500).json({ msg: error.message });
+  }
+};
+
+export const categorySummary = async (req, res) => {
+  try {
+    const data = await Expense.aggregate([
+      {
+       $match: { user: new mongoose.Types.ObjectId(req.user.id) },
+      },
+      {
+        $group: {
+          _id: "$category",
+          total: { $sum: "$amount" },
+        },
+      },
+    ]);
+
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({ msg: error.message });
+  }
+};
+
+export const monthlyExpenses = async (req, res) => {
+  try {
+    const data = await Expense.aggregate([
+      {
+       $match: { user: new mongoose.Types.ObjectId(req.user.id) },
+      },
+      {
+        $group: {
+          _id: { $month: "$date" },
+          total: { $sum: "$amount" },
+        },
+      },
+      {
+        $sort: { "_id": 1 },
+      },
+    ]);
+
+    res.json(data);
   } catch (error) {
     res.status(500).json({ msg: error.message });
   }
