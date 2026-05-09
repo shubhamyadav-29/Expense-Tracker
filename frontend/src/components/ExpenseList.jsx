@@ -33,6 +33,9 @@ const ExpenseList = ({ expenses, fetchExpenses, setEditingExpense }) => {
               <p className="font-semibold">{expense.category}</p>
 
               <p className="text-gray-500">{expense.notes}</p>
+              <p className="text-sm text-gray-400">
+                {new Date(expense.date).toLocaleDateString()}
+              </p>
             </div>
 
             <div className="flex items-center gap-4">

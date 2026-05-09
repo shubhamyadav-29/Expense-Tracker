@@ -11,12 +11,34 @@ import Charts from "../components/Charts";
 const Dashboard = () => {
   const navigate = useNavigate();
 
+  // expenses state
   const [expenses, setExpenses] = useState([]);
+
+  // analytics state
   const [summaryData, setSummaryData] = useState([]);
   const [monthlyData, setMonthlyData] = useState([]);
   const [totalExpense, setTotalExpense] = useState(0);
+
+  // edit state
   const [editingExpense, setEditingExpense] = useState(null);
 
+  // filters state
+  const [search, setSearch] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("");
+  const [selectedMonth, setSelectedMonth] = useState("");
+
+  // predefined categories
+  const categories = [
+    "Food",
+    "Travel",
+    "Shopping",
+    "Bills",
+    "Entertainment",
+    "Health",
+    "Education",
+  ];
+
+  // fetch expenses
   const fetchExpenses = async () => {
     try {
       const token = localStorage.getItem("token");
@@ -30,11 +52,11 @@ const Dashboard = () => {
       setExpenses(res.data);
     } catch (error) {
       console.log(error);
-
       navigate("/");
     }
   };
 
+  // fetch analytics
   const fetchAnalytics = async () => {
     try {
       const token = localStorage.getItem("token");
@@ -65,11 +87,35 @@ const Dashboard = () => {
     }
   };
 
+  // refresh dashboard
   const refreshDashboard = async () => {
-  await fetchExpenses();
-  await fetchAnalytics();
-};
+    await fetchExpenses();
+    await fetchAnalytics();
+  };
 
+  // filter logic
+  const filteredExpenses = expenses.filter((expense) => {
+    const matchesSearch = expense.notes
+      ?.toLowerCase()
+      .includes(search.toLowerCase());
+
+    const matchesCategory =
+      selectedCategory === "" ||
+      expense.category === selectedCategory;
+
+    const matchesMonth =
+      selectedMonth === "" ||
+      new Date(expense.date).getMonth() + 1 ===
+        Number(selectedMonth);
+
+    return (
+      matchesSearch &&
+      matchesCategory &&
+      matchesMonth
+    );
+  });
+
+  // auth check + initial fetch
   useEffect(() => {
     const token = localStorage.getItem("token");
 
@@ -85,40 +131,126 @@ const Dashboard = () => {
     <div className="min-h-screen bg-gray-100">
       <Navbar />
 
-      <div className="max-w-4xl mx-auto p-6">
+      <div className="max-w-6xl mx-auto p-6">
+
+        {/* FILTERS */}
+        <div className="bg-white p-6 rounded-xl shadow-lg mb-6">
+
+          <h2 className="text-xl font-bold mb-4">
+            Search & Filters
+          </h2>
+
+          <div className="grid md:grid-cols-3 gap-4">
+
+            {/* search */}
+            <input
+              type="text"
+              placeholder="Search notes..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="border p-3 rounded"
+            />
+
+            {/* category filter */}
+            <select
+              value={selectedCategory}
+              onChange={(e) =>
+                setSelectedCategory(e.target.value)
+              }
+              className="border p-3 rounded"
+            >
+              <option value="">All Categories</option>
+
+              {categories.map((cat, index) => (
+                <option key={index} value={cat}>
+                  {cat}
+                </option>
+              ))}
+            </select>
+
+            {/* month filter */}
+            <select
+              value={selectedMonth}
+              onChange={(e) =>
+                setSelectedMonth(e.target.value)
+              }
+              className="border p-3 rounded"
+            >
+              <option value="">All Months</option>
+
+              <option value="1">January</option>
+              <option value="2">February</option>
+              <option value="3">March</option>
+              <option value="4">April</option>
+              <option value="5">May</option>
+              <option value="6">June</option>
+              <option value="7">July</option>
+              <option value="8">August</option>
+              <option value="9">September</option>
+              <option value="10">October</option>
+              <option value="11">November</option>
+              <option value="12">December</option>
+            </select>
+
+          </div>
+        </div>
+
+        {/* ANALYTICS CARDS */}
         <div className="grid md:grid-cols-3 gap-6 mb-6">
-          <div className="bg-white p-6 rounded-xl shadow-lg">
-            <h2 className="text-gray-500">Total Expense</h2>
 
-            <p className="text-3xl font-bold mt-2">₹{totalExpense}</p>
+          <div className="bg-white p-6 rounded-xl shadow-lg">
+            <h2 className="text-gray-500">
+              Total Expense
+            </h2>
+
+            <p className="text-3xl font-bold mt-2">
+              ₹{totalExpense}
+            </p>
           </div>
 
           <div className="bg-white p-6 rounded-xl shadow-lg">
-            <h2 className="text-gray-500">Transactions</h2>
+            <h2 className="text-gray-500">
+              Transactions
+            </h2>
 
-            <p className="text-3xl font-bold mt-2">{expenses.length}</p>
+            <p className="text-3xl font-bold mt-2">
+              {filteredExpenses.length}
+            </p>
           </div>
 
           <div className="bg-white p-6 rounded-xl shadow-lg">
-            <h2 className="text-gray-500">Top Category</h2>
+            <h2 className="text-gray-500">
+              Top Category
+            </h2>
 
             <p className="text-3xl font-bold mt-2">
               {summaryData[0]?._id || "N/A"}
             </p>
           </div>
+
         </div>
 
-        <Charts summaryData={summaryData} monthlyData={monthlyData} />
+        {/* CHARTS */}
+        <Charts
+          summaryData={summaryData}
+          monthlyData={monthlyData}
+        />
+
+        {/* FORM */}
         <ExpenseForm
-         fetchExpenses={refreshDashboard}
+          fetchExpenses={refreshDashboard}
           editingExpense={editingExpense}
           setEditingExpense={setEditingExpense}
+          categories={categories}
         />
+
+        {/* EXPENSE LIST */}
         <ExpenseList
-          expenses={expenses}
-          fetchExpenses={fetchExpenses}
+          expenses={filteredExpenses}
+          fetchExpenses={refreshDashboard}
           setEditingExpense={setEditingExpense}
         />
+
       </div>
     </div>
   );

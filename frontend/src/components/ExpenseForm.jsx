@@ -1,23 +1,33 @@
-import { useState,useEffect  } from "react";
+import { useState, useEffect } from "react";
 import API from "../services/api";
 
-const ExpenseForm = ({ fetchExpenses, editingExpense, setEditingExpense }) => {
+const ExpenseForm = ({
+  fetchExpenses,
+  editingExpense,
+  setEditingExpense,
+  categories,
+}) => {
+
   const [formData, setFormData] = useState({
-    amount: editingExpense?.amount || "",
-    category: editingExpense?.category || "",
-    notes: editingExpense?.notes || "",
+    amount: "",
+    category: "Food",
+    notes: "",
+    date: "",
   });
 
+  // populate form when editing
   useEffect(() => {
-  if (editingExpense) {
-    setFormData({
-      amount: editingExpense.amount,
-      category: editingExpense.category,
-      notes: editingExpense.notes,
-    });
-  }
-}, [editingExpense]);
+    if (editingExpense) {
+      setFormData({
+        amount: editingExpense.amount,
+        category: editingExpense.category,
+        notes: editingExpense.notes,
+        date: editingExpense.date?.split("T")[0],
+      });
+    }
+  }, [editingExpense]);
 
+  // handle input changes
   const handleChange = (e) => {
     setFormData({
       ...formData,
@@ -25,50 +35,69 @@ const ExpenseForm = ({ fetchExpenses, editingExpense, setEditingExpense }) => {
     });
   };
 
- const handleSubmit = async (e) => {
-  e.preventDefault();
+  // submit form
+  const handleSubmit = async (e) => {
+    e.preventDefault();
 
-  try {
-    const token = localStorage.getItem("token");
+    try {
+      const token = localStorage.getItem("token");
 
-    if (editingExpense) {
-      await API.put(
-        `/expenses/${editingExpense._id}`,
-        formData,
-        {
+      // edit expense
+      if (editingExpense) {
+
+        await API.put(
+          `/expenses/${editingExpense._id}`,
+          formData,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
+        setEditingExpense(null);
+
+      } else {
+
+        // add expense
+        await API.post("/expenses", formData, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
-        }
-      );
+        });
 
-      setEditingExpense(null);
-    } else {
-      await API.post("/expenses", formData, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+      }
+
+      // reset form
+      setFormData({
+        amount: "",
+        category: "Food",
+        notes: "",
+        date: "",
       });
+
+      // refresh dashboard
+      fetchExpenses();
+
+    } catch (error) {
+      console.log(error);
     }
+  };
 
-    setFormData({
-      amount: "",
-      category: "",
-      notes: "",
-    });
-
-    fetchExpenses();
-  } catch (error) {
-    console.log(error);
-  }
-};
   return (
     <form
       onSubmit={handleSubmit}
       className="bg-white shadow-lg p-6 rounded-xl mb-6"
     >
-      <h2 className="text-xl font-bold mb-4">Add Expense</h2>
 
+      {/* title */}
+      <h2 className="text-2xl font-bold mb-4">
+        {editingExpense
+          ? "Edit Expense"
+          : "Add Expense"}
+      </h2>
+
+      {/* amount */}
       <input
         type="number"
         name="amount"
@@ -76,17 +105,26 @@ const ExpenseForm = ({ fetchExpenses, editingExpense, setEditingExpense }) => {
         value={formData.amount}
         onChange={handleChange}
         className="w-full border p-3 mb-4 rounded"
+        required
       />
 
-      <input
-        type="text"
+      {/* category dropdown */}
+      <select
         name="category"
-        placeholder="Category"
         value={formData.category}
         onChange={handleChange}
         className="w-full border p-3 mb-4 rounded"
-      />
+      >
 
+        {categories.map((category, index) => (
+          <option key={index} value={category}>
+            {category}
+          </option>
+        ))}
+
+      </select>
+
+      {/* notes */}
       <input
         type="text"
         name="notes"
@@ -96,9 +134,48 @@ const ExpenseForm = ({ fetchExpenses, editingExpense, setEditingExpense }) => {
         className="w-full border p-3 mb-4 rounded"
       />
 
-      <button className="bg-black text-white px-6 py-3 rounded">
-        Add Expense
-      </button>
+      {/* date */}
+      <input
+        type="date"
+        name="date"
+        value={formData.date}
+        onChange={handleChange}
+        className="w-full border p-3 mb-4 rounded"
+      />
+
+      {/* buttons */}
+      <div className="flex gap-4">
+
+        <button
+          type="submit"
+          className="bg-black text-white px-6 py-3 rounded hover:bg-gray-800 transition"
+        >
+          {editingExpense
+            ? "Update Expense"
+            : "Add Expense"}
+        </button>
+
+        {editingExpense && (
+          <button
+            type="button"
+            onClick={() => {
+              setEditingExpense(null);
+
+              setFormData({
+                amount: "",
+                category: "Food",
+                notes: "",
+                date: "",
+              });
+            }}
+            className="bg-gray-300 px-6 py-3 rounded hover:bg-gray-400 transition"
+          >
+            Cancel
+          </button>
+        )}
+
+      </div>
+
     </form>
   );
 };
