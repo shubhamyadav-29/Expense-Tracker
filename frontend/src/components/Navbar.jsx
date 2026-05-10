@@ -1,20 +1,25 @@
 import { useNavigate } from "react-router-dom";
 
-const Navbar = () => {
+const Navbar = ({ darkMode }) => {
   const navigate = useNavigate();
 
   const handleLogout = () => {
     localStorage.removeItem("token");
+
     navigate("/");
   };
 
   return (
-    <div className="bg-black text-white p-4 flex justify-between items-center">
-      <h1 className="text-2xl font-bold">Expense Tracker</h1>
+    <div
+      className={`p-4 flex justify-between items-center shadow-lg ${
+        darkMode ? "bg-[#0f172a] text-white" : "bg-black text-white"
+      }`}
+    >
+      <h1 className="text-3xl font-bold">Expense Tracker</h1>
 
       <button
         onClick={handleLogout}
-        className="bg-red-500 px-4 py-2 rounded"
+        className="bg-red-500 hover:bg-red-600 px-5 py-2 rounded-lg transition"
       >
         Logout
       </button>

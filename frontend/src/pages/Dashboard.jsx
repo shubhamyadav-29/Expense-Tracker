@@ -11,6 +11,11 @@ import Charts from "../components/Charts";
 const Dashboard = () => {
   const navigate = useNavigate();
 
+  // dark mode
+  const [darkMode, setDarkMode] = useState(() => {
+  return localStorage.getItem("theme") === "dark";
+});
+
   // expenses state
   const [expenses, setExpenses] = useState([]);
 
@@ -27,8 +32,8 @@ const Dashboard = () => {
   const [selectedCategory, setSelectedCategory] = useState("");
   const [selectedMonth, setSelectedMonth] = useState("");
 
-  // predefined categories
-  const categories = [
+  // categories state
+  const [categories, setCategories] = useState([
     "Food",
     "Travel",
     "Shopping",
@@ -36,7 +41,16 @@ const Dashboard = () => {
     "Entertainment",
     "Health",
     "Education",
-  ];
+  ]);
+
+  // save theme
+  useEffect(() => {
+    if (darkMode) {
+      localStorage.setItem("theme", "dark");
+    } else {
+      localStorage.setItem("theme", "light");
+    }
+  }, [darkMode]);
 
   // fetch expenses
   const fetchExpenses = async () => {
@@ -100,22 +114,16 @@ const Dashboard = () => {
       .includes(search.toLowerCase());
 
     const matchesCategory =
-      selectedCategory === "" ||
-      expense.category === selectedCategory;
+      selectedCategory === "" || expense.category === selectedCategory;
 
     const matchesMonth =
       selectedMonth === "" ||
-      new Date(expense.date).getMonth() + 1 ===
-        Number(selectedMonth);
+      new Date(expense.date).getMonth() + 1 === Number(selectedMonth);
 
-    return (
-      matchesSearch &&
-      matchesCategory &&
-      matchesMonth
-    );
+    return matchesSearch && matchesCategory && matchesMonth;
   });
 
-  // auth check + initial fetch
+  // auth check
   useEffect(() => {
     const token = localStorage.getItem("token");
 
@@ -128,36 +136,57 @@ const Dashboard = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      <Navbar />
+    <div
+      className={`min-h-screen transition duration-300 ${
+        darkMode ? "bg-gray-900 text-white" : "bg-gray-100 text-black"
+      }`}
+    >
+      <Navbar darkMode={darkMode} />
+
+      {/* dark mode toggle */}
+      <div className="max-w-6xl mx-auto pt-6 px-6 flex justify-end">
+        <button
+          onClick={() => setDarkMode(!darkMode)}
+          className={`px-4 py-2 rounded-lg shadow transition ${
+            darkMode ? "bg-yellow-400 text-black" : "bg-black text-white"
+          }`}
+        >
+          {darkMode ? "☀️ Light Mode" : "🌙 Dark Mode"}
+        </button>
+      </div>
 
       <div className="max-w-6xl mx-auto p-6">
-
         {/* FILTERS */}
-        <div className="bg-white p-6 rounded-xl shadow-lg mb-6">
-
-          <h2 className="text-xl font-bold mb-4">
-            Search & Filters
-          </h2>
+        <div
+          className={`p-6 rounded-xl shadow-lg mb-6 ${
+            darkMode ? "bg-gray-800" : "bg-white"
+          }`}
+        >
+          <h2 className="text-xl font-bold mb-4">Search & Filters</h2>
 
           <div className="grid md:grid-cols-3 gap-4">
-
             {/* search */}
             <input
               type="text"
               placeholder="Search notes..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="border p-3 rounded"
+              className={`border p-3 rounded ${
+                darkMode
+                  ? "bg-gray-800 text-white placeholder-gray-400 border-gray-600"
+                  : "bg-white text-black border-gray-300"
+              }`}
             />
 
             {/* category filter */}
             <select
               value={selectedCategory}
-              onChange={(e) =>
-                setSelectedCategory(e.target.value)
-              }
-              className="border p-3 rounded"
+              onChange={(e) => setSelectedCategory(e.target.value)}
+              className={`border p-3 rounded ${
+                darkMode
+                  ? "bg-gray-800 text-white border-gray-600"
+                  : "bg-white text-black border-gray-300"
+              }`}
             >
               <option value="">All Categories</option>
 
@@ -171,69 +200,82 @@ const Dashboard = () => {
             {/* month filter */}
             <select
               value={selectedMonth}
-              onChange={(e) =>
-                setSelectedMonth(e.target.value)
-              }
-              className="border p-3 rounded"
+              onChange={(e) => setSelectedMonth(e.target.value)}
+              className={`border p-3 rounded ${
+                darkMode
+                  ? "bg-gray-800 text-white border-gray-600"
+                  : "bg-white text-black border-gray-300"
+              }`}
             >
               <option value="">All Months</option>
 
               <option value="1">January</option>
+
               <option value="2">February</option>
+
               <option value="3">March</option>
+
               <option value="4">April</option>
+
               <option value="5">May</option>
+
               <option value="6">June</option>
+
               <option value="7">July</option>
+
               <option value="8">August</option>
+
               <option value="9">September</option>
+
               <option value="10">October</option>
+
               <option value="11">November</option>
+
               <option value="12">December</option>
             </select>
-
           </div>
         </div>
 
-        {/* ANALYTICS CARDS */}
+        {/* ANALYTICS */}
         <div className="grid md:grid-cols-3 gap-6 mb-6">
+          <div
+            className={`p-6 rounded-xl shadow-lg ${
+              darkMode ? "bg-gray-800" : "bg-white"
+            }`}
+          >
+            <h2 className="text-gray-500">Total Expense</h2>
 
-          <div className="bg-white p-6 rounded-xl shadow-lg">
-            <h2 className="text-gray-500">
-              Total Expense
-            </h2>
-
-            <p className="text-3xl font-bold mt-2">
-              ₹{totalExpense}
-            </p>
+            <p className="text-3xl font-bold mt-2">₹{totalExpense}</p>
           </div>
 
-          <div className="bg-white p-6 rounded-xl shadow-lg">
-            <h2 className="text-gray-500">
-              Transactions
-            </h2>
+          <div
+            className={`p-6 rounded-xl shadow-lg ${
+              darkMode ? "bg-gray-800" : "bg-white"
+            }`}
+          >
+            <h2 className="text-gray-500">Transactions</h2>
 
-            <p className="text-3xl font-bold mt-2">
-              {filteredExpenses.length}
-            </p>
+            <p className="text-3xl font-bold mt-2">{filteredExpenses.length}</p>
           </div>
 
-          <div className="bg-white p-6 rounded-xl shadow-lg">
-            <h2 className="text-gray-500">
-              Top Category
-            </h2>
+          <div
+            className={`p-6 rounded-xl shadow-lg ${
+              darkMode ? "bg-gray-800" : "bg-white"
+            }`}
+          >
+            <h2 className="text-gray-500">Top Category</h2>
 
             <p className="text-3xl font-bold mt-2">
               {summaryData[0]?._id || "N/A"}
             </p>
           </div>
-
         </div>
 
         {/* CHARTS */}
         <Charts
           summaryData={summaryData}
           monthlyData={monthlyData}
+          darkMode={darkMode}
         />
 
         {/* FORM */}
@@ -242,6 +284,8 @@ const Dashboard = () => {
           editingExpense={editingExpense}
           setEditingExpense={setEditingExpense}
           categories={categories}
+          setCategories={setCategories}
+          darkMode={darkMode}
         />
 
         {/* EXPENSE LIST */}
@@ -249,8 +293,8 @@ const Dashboard = () => {
           expenses={filteredExpenses}
           fetchExpenses={refreshDashboard}
           setEditingExpense={setEditingExpense}
+          darkMode={darkMode}
         />
-
       </div>
     </div>
   );
